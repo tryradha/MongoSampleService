@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:jaxrs="http://cxf.apache.org/jaxrs" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:util="http://www.springframework.org/schema/util" xmlns:task="http://www.springframework.org/schema/task"
+	xsi:schemaLocation=" http://www.springframework.org/schema/beans 	http://www.springframework.org/schema/beans/spring-beans.xsd 
+	http://www.springframework.org/schema/context 	http://www.springframework.org/schema/context/spring-context.xsd 
+	 http://cxf.apache.org/jaxrs http://cxf.apache.org/schemas/jaxrs.xsd 
+	http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
+	http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task.xsd"
+	default-lazy-init="false">
+
+	<import resource="classpath:application-profiles.xml" />
+	<import resource="classpath:mongo-dao.xml" />
+	<context:component-scan base-package="com.getvee**" />
+	<import resource="classpath:META-INF/cxf/cxf.xml" />
+	<import resource="classpath:META-INF/cxf/cxf-servlet.xml" />
+
+	<task:annotation-driven scheduler="taskScheduler" />
+
+	<bean id="taskScheduler"
+		class="org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler">
+		<property name="waitForTasksToCompleteOnShutdown" value="true" />
+		<property name="poolSize" value="10" />
+	</bean>
+
+
+	<jaxrs:server id="sampleServiceEndPoint" address="/sampleService">
+		<jaxrs:providers>
+			<ref bean="jsonprovider" />
+			<bean class="com.getvee.sample.service.exception.handler.ExceptionHandler" />
+		</jaxrs:providers>
+		<jaxrs:serviceBeans>
+			<ref bean="sampleServiceImpl" />
+		</jaxrs:serviceBeans>
+		<jaxrs:extensionMappings>
+			<entry key="xml" value="application/xml" />
+			<entry key="json" value="application/json" />
+		</jaxrs:extensionMappings>
+		<jaxrs:inInterceptors>
+			<ref bean="loggingInInterceptor" />
+		</jaxrs:inInterceptors>
+		<jaxrs:inFaultInterceptors>
+			<ref bean="loggingInInterceptor" />
+		</jaxrs:inFaultInterceptors>
+		<jaxrs:outFaultInterceptors>
+			<ref bean="loggingOutInterceptor" />
+		</jaxrs:outFaultInterceptors>
+		<jaxrs:outInterceptors>
+			<ref bean="loggingOutInterceptor" />
+		</jaxrs:outInterceptors>
+	</jaxrs:server>
+
+	<bean id="jsonprovider"
+		class="com.fasterxml.jackson.jaxrs.json.JacksonJaxbJsonProvider">
+		<property name="mapper" ref="jsonmapper" />
+	</bean>
+	<bean id="objectMapper" class="com.fasterxml.jackson.databind.ObjectMapper" />
+	<bean id="loggingInInterceptor" class="org.apache.cxf.interceptor.LoggingInInterceptor" />
+	<bean id="loggingOutInterceptor" class="org.apache.cxf.interceptor.LoggingOutInterceptor" />
+
+
+
+
+	<bean id="sampleServiceImpl" class="com.getvee.sample.service.impl.SampleServiceImpl" />
+	<bean id="jsonmapper"
+		class="org.springframework.http.converter.json.Jackson2ObjectMapperFactoryBean">
+		<property name="featuresToEnable">
+			<array>
+				<util:constant
+					static-field="com.fasterxml.jackson.core.JsonGenerator.Feature.WRITE_NUMBERS_AS_STRINGS" />
+			</array>
+		</property>
+		<property name="featuresToDisable">
+			<array>
+				<util:constant
+					static-field="com.fasterxml.jackson.databind.SerializationFeature.FAIL_ON_EMPTY_BEANS" />
+			</array>
+		</property>
+	</bean>
+
+
+
+
+
+	<bean id="restTemplate" name="restTemplate"
+		class="org.springframework.web.client.RestTemplate">
+		<property name="requestFactory">
+			<bean
+				class="org.springframework.http.client.SimpleClientHttpRequestFactory">
+				<property name="readTimeout" value="100000" />
+				<property name="connectTimeout" value="10000" />
+			</bean>
+		</property>
+	</bean>
+
+
+</beans>
